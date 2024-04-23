@@ -9,11 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-	"projekat/handler"
+	handlers "projekat/handler"
 	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -100,13 +101,8 @@ func main() {
 		close(stop)
 	}()
 
-	// Čekanje na zatvaranje servera ili prekid izvršavanja, sa maksimalnim timeout-om od 10 sekundi
-	select {
-	case <-stop:
-		// Logovanje završetka procesa graceful shutdown-a
-		log.Println("Završeno zatvaranje servera")
-	case <-time.After(10 * time.Second):
-		// Ako prođe 5 sekundi, bez obzira da li je server završio ili ne, logujemo poruku
-		log.Println("Prekinuto čekanje na zatvaranje servera nakon 10 sekundi")
-	}
+	// Čekanje na zatvaranje servera ili prekid izvršavanja
+	<-stop
+	// Logovanje završetka procesa graceful shutdown-a
+	log.Println("Završeno zatvaranje servera")
 }

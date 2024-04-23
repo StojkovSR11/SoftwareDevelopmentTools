@@ -40,7 +40,7 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // čekaj 10 sekundi
+    // čekaj 5 sekundi
     time.Sleep(5 * time.Second)
 
     // vrati odgovor

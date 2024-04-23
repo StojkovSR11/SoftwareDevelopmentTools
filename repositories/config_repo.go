@@ -17,28 +17,31 @@ func NewConfigInMemory() model.ConfigRepository {
 	}
 }
 
-// Kreiranje konfiguracije. Ako konfiguracija već postoji, vraća grešku.
+// Kreiranje konfiguracije.
 func (cim *ConfigInRepositoryMemory) CreateConfig(config model.Config) error {
     if cim.configs[config.Name] == nil {
         cim.configs[config.Name] = make(map[int]model.Config)
     }
-    if _, exists := cim.configs[config.Name][config.Version]; exists {
+    if _, exists := cim.configs[config.Name][config.Version]; 
+	// Ako konfiguracija već postoji, vraća grešku.
+	exists {
         return fmt.Errorf("konfiguracija sa imenom %s i verzijom %d već postoji", config.Name, config.Version)
     }
     cim.configs[config.Name][config.Version] = config
     return nil
 }
 
-// Dobavljanje konfiguracije po imenu i verziji. Ako konfiguracija ne postoji, vraća grešku.
+// Dobavljanje konfiguracije po imenu i verziji.
 func (cim *ConfigInRepositoryMemory) GetConfig(name string, version int) (model.Config, error) {
 	config, exists := cim.configs[name][version]
+	// Ako konfiguracija već postoji, vraća grešku.
 	if !exists {
 		return model.Config{}, fmt.Errorf("konfiguracija sa imenom %s i verzijom %d nije pronađena", name, version)
 	}
 	return config, nil
 }
 
-// Ažuriranje konfiguracije po imenu i verziji. Ako konfiguracija ne postoji, vraća grešku.
+// Ažuriranje konfiguracije po imenu i verziji.
 func (cim *ConfigInRepositoryMemory) UpdateConfig(name string, version int, newConfig model.Config) error {
 	// Proveri da li postoji konfiguracija sa starim imenom i verzijom
 	if _, exists := cim.configs[name][version]; !exists {
@@ -65,9 +68,10 @@ func (cim *ConfigInRepositoryMemory) UpdateConfig(name string, version int, newC
 }
 
 
-// Brisanje konfiguracije po imenu i verziji. Ako konfiguracija ne postoji, vraća grešku.
+// Brisanje konfiguracije po imenu i verziji. 
 func (cim *ConfigInRepositoryMemory) DeleteConfig(name string, version int) error {
 	if _, exists := cim.configs[name][version]; 
+	// Ako konfiguracija već postoji, vraća grešku.
 	!exists {
 		return fmt.Errorf("konfiguracija sa imenom %s i verzijom %d nije pronađena", name, version)
 	}

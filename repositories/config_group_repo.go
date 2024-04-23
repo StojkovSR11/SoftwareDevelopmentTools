@@ -39,6 +39,7 @@ func (repo *ConfigGroupInMemoryRepository) CreateConfigGroup(group model.ConfigG
 // GetConfigGroup dohvata konfiguracionu grupu po imenu i verziji.
 func (repo *ConfigGroupInMemoryRepository) GetConfigGroup(name string, version int) (model.ConfigGroup, error) {
     group, exists := repo.configGroups[name][version]
+    //Ako ne postoji baca poruku
     if !exists {
         return model.ConfigGroup{}, fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
     }
@@ -50,6 +51,7 @@ func (repo *ConfigGroupInMemoryRepository) GetConfigGroup(name string, version i
 func (repo *ConfigGroupInMemoryRepository) AddConfigurationToGroup(name string, version int, config model.Config) error {
     key := version
     group, exists := repo.configGroups[name][key]
+    //Ako ne postoji baca poruku
     if !exists {
         return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
     }
@@ -62,23 +64,29 @@ func (repo *ConfigGroupInMemoryRepository) AddConfigurationToGroup(name string, 
 func (repo *ConfigGroupInMemoryRepository) RemoveConfigurationFromGroup(name string, version int, configName string) error {
     key := version
     group, exists := repo.configGroups[name][key]
+    //Ako ne postoji baca poruku
     if !exists {
         return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
     }
-
+    //pravimo listu azuriranih konfiguracija
     var updatedConfigs []model.Config
     removed := false
+    //prolazimo kroz mape konfiguracija
     for _, c := range group.Configs {
+        //Ako ime nije isto kao ime koje zelimo da izbrisemo dodaje ga u novu listu konfiguracija
         if c.Name != configName {
             updatedConfigs = append(updatedConfigs, c)
-        } else {
+        
+        }//ako jeste postavi ga na true
+         else {
             removed = true
         }
     }
+    //ako ga ne pronace baca poruku
     if !removed {
         return fmt.Errorf("konfiguracija sa imenom %s nije pronađena u grupi", configName)
     }
-
+    //azuriramo staru mapu konfiguracije novom
     group.Configs = updatedConfigs
     repo.configGroups[name][key] = group
     return nil
@@ -87,7 +95,9 @@ func (repo *ConfigGroupInMemoryRepository) RemoveConfigurationFromGroup(name str
 // DeleteConfigGroup briše konfiguracionu grupu po imenu i verziji.
 func (repo *ConfigGroupInMemoryRepository) DeleteConfigGroup(name string, version int) error {
     key := version
-    if _, exists := repo.configGroups[name][key]; !exists {
+    if _, exists := repo.configGroups[name][key]; 
+    //ako ne postoji baca poruku
+    !exists {
         return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
     }
     delete(repo.configGroups[name], key)

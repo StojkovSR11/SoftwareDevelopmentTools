@@ -15,6 +15,7 @@ import (
 	"projekat/services"
 
 	"github.com/gorilla/mux"
+	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -54,6 +55,23 @@ func main() {
 	configGroupHandler := handlers.NewConfigGroupHandler(servicegroup)
 
 	router := mux.NewRouter()
+
+	// Define a rate limiter with a limit of 10 requests per min
+	limiter := rate.NewLimiter(rate.Limit(0.167), 1)
+
+	// Middleware to enforce rate limiting
+	rateLimitMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if limiter.Allow() == false {
+				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	// Attach the rate limiting middleware to all routes
+	router.Use(rateLimitMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", configHandler.Get).Methods("GET")
 	router.HandleFunc("/configs", configHandler.Post).Methods("POST")

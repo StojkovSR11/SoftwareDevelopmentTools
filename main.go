@@ -57,7 +57,7 @@ func main() {
 	router := mux.NewRouter()
 
 	// Define a rate limiter with a limit of 10 requests per min
-	limiter := rate.NewLimiter(rate.Limit(0.167), 1)
+	limiter := rate.NewLimiter(rate.Limit(0.167), 5)
 
 	// Middleware to enforce rate limiting
 	rateLimitMiddleware := func(next http.Handler) http.Handler {

@@ -19,16 +19,16 @@ func NewConfigInMemory() model.ConfigRepository {
 
 // Kreiranje konfiguracije.
 func (cim *ConfigInRepositoryMemory) CreateConfig(config model.Config) error {
-    if cim.configs[config.Name] == nil {
-        cim.configs[config.Name] = make(map[int]model.Config)
-    }
-    if _, exists := cim.configs[config.Name][config.Version]; 
+	if cim.configs[config.Name] == nil {
+		cim.configs[config.Name] = make(map[int]model.Config)
+	}
+	if _, exists := cim.configs[config.Name][config.Version];
 	// Ako konfiguracija već postoji, vraća grešku.
 	exists {
-        return fmt.Errorf("konfiguracija sa imenom %s i verzijom %d već postoji", config.Name, config.Version)
-    }
-    cim.configs[config.Name][config.Version] = config
-    return nil
+		return fmt.Errorf("konfiguracija sa imenom %s i verzijom %d već postoji", config.Name, config.Version)
+	}
+	cim.configs[config.Name][config.Version] = config
+	return nil
 }
 
 // Dobavljanje konfiguracije po imenu i verziji.
@@ -67,10 +67,9 @@ func (cim *ConfigInRepositoryMemory) UpdateConfig(name string, version int, newC
 	return nil
 }
 
-
-// Brisanje konfiguracije po imenu i verziji. 
+// Brisanje konfiguracije po imenu i verziji.
 func (cim *ConfigInRepositoryMemory) DeleteConfig(name string, version int) error {
-	if _, exists := cim.configs[name][version]; 
+	if _, exists := cim.configs[name][version];
 	// Ako konfiguracija već postoji, vraća grešku.
 	!exists {
 		return fmt.Errorf("konfiguracija sa imenom %s i verzijom %d nije pronađena", name, version)

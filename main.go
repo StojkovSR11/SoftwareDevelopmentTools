@@ -10,7 +10,6 @@ import (
 	"time"
 
 	handlers "projekat/handler"
-	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
 
@@ -24,32 +23,6 @@ func main() {
 
 	repogroup := repositories.NewConfigGroupInMemoryRepository()
 	servicegroup := services.NewConfigGroupInService(repogroup)
-
-	params := make(map[string]string)
-	params["username"] = "pera"
-	params["port"] = "5432"
-
-	config1 := model.Config{
-		Name:       "db_config",
-		Version:    2,
-		Parameters: params,
-	}
-
-	config2 := model.Config{
-		Name:       "konfiguracija2",
-		Version:    2,
-		Parameters: params,
-	}
-
-	configGroup1 := model.ConfigGroup{
-		Name:    "db_configGroup",
-		Version: 2,
-		Configs: []model.Config{config1, config2},
-	}
-
-	service.CreateConfig(config1)
-	service.CreateConfig(config2)
-	servicegroup.CreateConfigGroup(configGroup1)
 
 	configHandler := handlers.NewConfigHandler(service)
 	configGroupHandler := handlers.NewConfigGroupHandler(servicegroup)
@@ -84,6 +57,8 @@ func main() {
 	router.HandleFunc("/configGroups/{name}/{version}/{configName}", configGroupHandler.DeleteConfigFromGroup).Methods("DELETE")
 	router.HandleFunc("/configGroups/{name}/{version}/addConfig", configGroupHandler.AddConfigToGroup).Methods("POST")
 
+	router.HandleFunc("/configGroups/{name}/{version}/{filter}", configGroupHandler.GetConfigurationsFromGroup).Methods("GET")
+	router.HandleFunc("/configGroups/{name}/{version}/{filter}", configGroupHandler.DeleteConfigFromGroup).Methods("DELETE")
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 
 	// Kanal za hvatanje signala za zaustavljanje

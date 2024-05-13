@@ -23,7 +23,7 @@ func (s ConfigGroupService) GetConfigGroup(name string, version int) (model.Conf
 }
 
 // AddConfigurationToGroup adds a configuration to a configuration group by its name and version.
-func (s ConfigGroupService) AddConfigurationToGroup(name string, version int, config model.Config) error {
+func (s ConfigGroupService) AddConfigurationToGroup(name string, version int, config model.GroupedConfig) error {
 	return s.repo.AddConfigurationToGroup(name, version, config)
 }
 
@@ -35,4 +35,7 @@ func (s ConfigGroupService) RemoveConfigurationFromGroup(name string, version in
 // DeleteConfigGroup deletes a configuration group by its name and version.
 func (s ConfigGroupService) DeleteConfigGroup(name string, version int) error {
 	return s.repo.DeleteConfigGroup(name, version)
+}
+func (s ConfigGroupService) GetConfigurationsFromGroup(name string, version int, filter string) ([]model.GroupedConfig, error) {
+	return s.repo.GetConfigurationsFromGroup(name, version, filter)
 }

@@ -4,7 +4,7 @@ import (
 	"projekat/model"
 )
 
-//struktura koja omogućava rad sa konfiguracijama preko repozitorijuma.
+// struktura koja omogućava rad sa konfiguracijama preko repozitorijuma.
 type ConfigService struct {
 	repo model.ConfigRepository
 }

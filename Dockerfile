@@ -1,29 +1,29 @@
-# Build Stage
+# Faza izgradnje
 FROM golang:1.19 AS build
 
-# Set working directory
+# Postavi radni direktorijum
 WORKDIR /app
 
-# Copy only Go module files
+# Kopiraj samo fajlove Go modula
 COPY go.mod go.sum ./
 
-# Download Go modules (cached if go.mod/go.sum are unchanged)
+# Preuzmi Go module (keširano ako go.mod/go.sum nisu promenjeni)
 RUN go mod download
 
-# Copy the rest of the source code
+# Kopiraj ostatak izvornog koda
 COPY . .
 
-# Build the application
+# Izgradi aplikaciju
 RUN CGO_ENABLED=0 GOOS=linux go build -o /main .
 
-# Final Stage
+# Konačna faza
 FROM alpine:3.14
 
-# Copy the binary from the build stage
+# Kopiraj binarni fajl iz faze izgradnje
 COPY --from=build /main /main
 
-# Expose port
+# Izloži port
 EXPOSE 8000
 
-# Run the binary
+# Pokreni binarni fajl
 CMD ["/main"]

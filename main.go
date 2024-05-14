@@ -72,10 +72,8 @@ func main() {
 			log.Fatalf("Greška prilikom pokretanja servera: %v", err)
 		}
 	}()
-
 	// Čekanje na signal zaustavljanja
 	<-shutdown
-
 	// Logovanje početka procesa graceful shutdown-a
 	log.Println("Zatvaranje servera...")
 

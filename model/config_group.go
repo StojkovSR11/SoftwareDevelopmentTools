@@ -13,9 +13,9 @@ type ConfigGroupRepository interface {
 
 	AddConfigurationToGroup(name string, version int, config GroupedConfig) error
 
-	RemoveConfigurationFromGroup(name string, version int, configName string) error
-
 	DeleteConfigGroup(name string, version int) error
+
+	RemoveConfigurationFromGroup(name string, version int, filter string) error
 
 	GetConfigurationsFromGroup(name string, version int, filter string) ([]GroupedConfig, error)
 }

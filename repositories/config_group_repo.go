@@ -47,15 +47,22 @@ func (repo *ConfigGroupInMemoryRepository) GetConfigGroup(name string, version i
 
 // AddConfigurationToGroup dodaje konfiguraciju u konfiguracionu grupu po imenu i verziji.
 func (repo *ConfigGroupInMemoryRepository) AddConfigurationToGroup(name string, version int, config model.GroupedConfig) error {
-	key := version
-	group, exists := repo.configGroups[name][key]
-	//Ako ne postoji baca poruku
-	if !exists {
-		return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
-	}
-	group.Configs = append(group.Configs, config)
-	repo.configGroups[name][key] = group
-	return nil
+    key := version
+    group, exists := repo.configGroups[name][key]
+    // Provera da li konfiguraciona grupa postoji
+    if !exists {
+        return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
+    }
+    // Provera da li konfiguracija već postoji unutar grupe
+    for _, c := range group.Configs {
+        if c.Name == config.Name {
+            return fmt.Errorf("konfiguracija '%s' već postoji u konfiguracionoj grupi '%s'", config.Name, name)
+        }
+    }
+    // Dodavanje konfiguracije u grupu
+    group.Configs = append(group.Configs, config)
+    repo.configGroups[name][key] = group
+    return nil
 }
 
 // RemoveConfigurationFromGroup uklanja konfiguraciju iz konfiguracione grupe po imenu i verziji.

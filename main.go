@@ -29,13 +29,13 @@ func main() {
 
 	router := mux.NewRouter()
 
-	// Define a rate limiter with a limit of 10 requests per min
-	limiter := rate.NewLimiter(rate.Limit(0.167), 5)
+	// Definisanje rate limitera sa limitom od 10 zahteva po min
+	limiter := rate.NewLimiter(rate.Limit(0.167), 3)
 
-	// Middleware to enforce rate limiting
+	// Middleware koji implementira rate limiter
 	rateLimitMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if limiter.Allow() == false {
+			if !limiter.Allow() {
 				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 				return
 			}
@@ -43,7 +43,7 @@ func main() {
 		})
 	}
 
-	// Attach the rate limiting middleware to all routes
+	// Dodavanje middleware-a na sver route
 	router.Use(rateLimitMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", configHandler.Get).Methods("GET")

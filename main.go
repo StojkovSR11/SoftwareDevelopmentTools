@@ -54,7 +54,7 @@ func main() {
 	router.HandleFunc("/configGroups/{name}/{version}", configGroupHandler.Get).Methods("GET")
 	router.HandleFunc("/configGroups", configGroupHandler.Post).Methods("POST")
 	router.HandleFunc("/configGroups/{name}/{version}", configGroupHandler.Delete).Methods("DELETE")
-	router.HandleFunc("/configGroups/{name}/{version}/{configName}", configGroupHandler.DeleteConfigFromGroup).Methods("DELETE")
+	//router.HandleFunc("/configGroups/{name}/{version}/{configName}", configGroupHandler.DeleteConfigFromGroup).Methods("DELETE")
 	router.HandleFunc("/configGroups/{name}/{version}/addConfig", configGroupHandler.AddConfigToGroup).Methods("POST")
 
 	router.HandleFunc("/configGroups/{name}/{version}/{filter}", configGroupHandler.GetConfigurationsFromGroup).Methods("GET")

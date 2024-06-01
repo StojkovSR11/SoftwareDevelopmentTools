@@ -1,5 +1,6 @@
 package model
 
+
 // Definicija strukture konfiguracije
 type Config struct {
 	Name       string            `json:"name"`

@@ -18,11 +18,19 @@ import (
 )
 
 func main() {
-	repo := repositories.NewConfigInMemory()
-	service := services.NewConfigInService(repo)
-
-	repogroup := repositories.NewConfigGroupInMemoryRepository()
+	repo, err := repositories.NewConfigConsulRepository()
+	if err != nil {
+		log.Fatal(err)
+	}
+	service := services.NewConfigService(repo)
+	
+	repogroup, err := repositories.NewConfigGroupConsulRepository()
+	if err != nil{
+		log.Fatal(err)
+	}
 	servicegroup := services.NewConfigGroupInService(repogroup)
+
+
 
 	configHandler := handlers.NewConfigHandler(service)
 	configGroupHandler := handlers.NewConfigGroupHandler(servicegroup)

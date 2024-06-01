@@ -1,120 +1,171 @@
 package repositories
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"github.com/hashicorp/consul/api"
 	"projekat/model"
 )
 
-// ConfigGroupInMemoryRepository je implementacija ConfigGroupRepository interfejsa u memoriji.
-type ConfigGroupInMemoryRepository struct {
-	configGroups map[string]map[int]model.ConfigGroup
+// ConfigGroupConsulRepository is an implementation of ConfigGroupRepository using Consul.
+type ConfigGroupConsulRepository struct {
+	cli *api.Client
 }
 
-// NewConfigGroupInMemoryRepository kreira novu instancu ConfigGroupInMemoryRepository.
-func NewConfigGroupInMemoryRepository() model.ConfigGroupRepository {
-	return &ConfigGroupInMemoryRepository{
-		configGroups: make(map[string]map[int]model.ConfigGroup),
+func NewConfigGroupConsulRepository() (*ConfigGroupConsulRepository, error) {
+	consulAddress := fmt.Sprintf("%s:%s", os.Getenv("DB"), os.Getenv("DBPORT"))
+	config := api.DefaultConfig()
+	config.Address = consulAddress
+
+	client, err := api.NewClient(config)
+	if err != nil {
+		return nil, err
 	}
+	return &ConfigGroupConsulRepository{cli: client}, nil
 }
 
-// CreateConfigGroup kreira novu konfiguracionu grupu.
-func (repo *ConfigGroupInMemoryRepository) CreateConfigGroup(group model.ConfigGroup) error {
-	key := group.Version
-	//Proveri da li mapa konf grupa postoji
-	if repo.configGroups[group.Name] == nil {
-		// Ako ne postoji, napravi je
-		repo.configGroups[group.Name] = make(map[int]model.ConfigGroup)
-	} else {
-		// Proveri da li postoji unutrasnja mapa konfiguracija
-		if _, exists := repo.configGroups[group.Name][key]; exists {
-			return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d već postoji", group.Name, group.Version)
-		}
+// CreateConfigGroup creates a new configuration group.
+func (repo *ConfigGroupConsulRepository) CreateConfigGroup(group model.ConfigGroup) error {
+	key := fmt.Sprintf("configGroup/%s/%d", group.Name, group.Version)
+
+	// Check if the configuration group already exists
+	kv := repo.cli.KV()
+	pair, _, err := kv.Get(key, nil)
+	if err != nil {
+		return err
 	}
-	// Dodeli mapu grupi konf
-	repo.configGroups[group.Name][key] = group
-	return nil
+	if pair != nil {
+		return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d već postoji", group.Name, group.Version)
+	}
+
+	// Save the configuration group to Consul
+	data, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+
+	p := &api.KVPair{Key: key, Value: data}
+	_, err = kv.Put(p, nil)
+	return err
 }
 
-// GetConfigGroup dohvata konfiguracionu grupu po imenu i verziji.
-func (repo *ConfigGroupInMemoryRepository) GetConfigGroup(name string, version int) (model.ConfigGroup, error) {
-	group, exists := repo.configGroups[name][version]
-	//Ako ne postoji baca poruku
-	if !exists {
+// GetConfigGroup retrieves a configuration group by name and version.
+func (repo *ConfigGroupConsulRepository) GetConfigGroup(name string, version int) (model.ConfigGroup, error) {
+	key := fmt.Sprintf("configGroup/%s/%d", name, version)
+
+	kv := repo.cli.KV()
+	pair, _, err := kv.Get(key, nil)
+	if err != nil {
+		return model.ConfigGroup{}, err
+	}
+	if pair == nil {
 		return model.ConfigGroup{}, fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
+	}
+
+	var group model.ConfigGroup
+	err = json.Unmarshal(pair.Value, &group)
+	if err != nil {
+		return model.ConfigGroup{}, err
 	}
 	return group, nil
 }
 
-// AddConfigurationToGroup dodaje konfiguraciju u konfiguracionu grupu po imenu i verziji.
-func (repo *ConfigGroupInMemoryRepository) AddConfigurationToGroup(name string, version int, config model.GroupedConfig) error {
-    key := version
-    group, exists := repo.configGroups[name][key]
-    // Provera da li konfiguraciona grupa postoji
-    if !exists {
-        return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
+// AddConfigurationToGroup adds a configuration to a configuration group by name and version.
+func (repo *ConfigGroupConsulRepository) AddConfigurationToGroup(name string, version int, config model.GroupedConfig) error {
+    group, err := repo.GetConfigGroup(name, version)
+    if err != nil {
+        return err
     }
-    // Provera da li konfiguracija već postoji unutar grupe
+
     for _, c := range group.Configs {
         if c.Name == config.Name {
             return fmt.Errorf("konfiguracija '%s' već postoji u konfiguracionoj grupi '%s'", config.Name, name)
         }
     }
-    // Dodavanje konfiguracije u grupu
+
     group.Configs = append(group.Configs, config)
-    repo.configGroups[name][key] = group
-    return nil
+
+    return repo.UpdateConfigGroup(group)
 }
 
-// RemoveConfigurationFromGroup uklanja konfiguraciju iz konfiguracione grupe po imenu i verziji.
-func (repo *ConfigGroupInMemoryRepository) RemoveConfigurationFromGroup(name string, version int, filter string) error {
-	key := version
-	group, exists := repo.configGroups[name][key]
-	if !exists {
-		return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
+// UpdateConfigGroup updates an existing configuration group.
+func (repo *ConfigGroupConsulRepository) UpdateConfigGroup(group model.ConfigGroup) error {
+    key := fmt.Sprintf("configGroup/%s/%d", group.Name, group.Version)
+
+    // Save the updated configuration group to Consul
+    data, err := json.Marshal(group)
+    if err != nil {
+        return err
+    }
+
+    p := &api.KVPair{Key: key, Value: data}
+    _, err = repo.cli.KV().Put(p, nil)
+    return err
+}
+
+
+// RemoveConfigurationFromGroup removes a configuration from a configuration group by name and version.
+func (repo *ConfigGroupConsulRepository) RemoveConfigurationFromGroup(name string, version int, filterKey, filterValue string) error {
+	group, err := repo.GetConfigGroup(name, version)
+	if err != nil {
+		return err
 	}
+
 	var updatedConfigs []model.GroupedConfig
 	removed := false
 	for _, c := range group.Configs {
-		// Use the filter condition here instead of comparing with configName
-		if c.Labels[filter] == "" {
+		if val, ok := c.Labels[filterKey]; !ok || val != filterValue {
 			updatedConfigs = append(updatedConfigs, c)
 		} else {
 			removed = true
 		}
 	}
 	if !removed {
-		return fmt.Errorf("konfiguracija sa filterom %s nije pronađena u grupi", filter)
+		return fmt.Errorf("konfiguracija sa filterom %s:%s nije pronađena u grupi", filterKey, filterValue)
 	}
 	group.Configs = updatedConfigs
-	repo.configGroups[name][key] = group
-	return nil
-}
-func (repo *ConfigGroupInMemoryRepository) GetConfigurationsFromGroup(name string, version int, filter string) ([]model.GroupedConfig, error) {
-	key := version
-	group, exists := repo.configGroups[name][key]
-	if !exists {
-		return nil, fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
-	}
-	var filteredConfigs []model.GroupedConfig
-	for _, c := range group.Configs {
-		if c.Labels[filter] != "" {
-			filteredConfigs = append(filteredConfigs, c)
-		}
-	}
-	if len(filteredConfigs) == 0 {
-		return nil, fmt.Errorf("nema konfiguracija sa filterom %s u grupi", filter)
-	}
-	return filteredConfigs, nil
+
+	return repo.UpdateConfigGroup(group)
 }
 
-// DeleteConfigGroup briše konfiguracionu grupu po imenu i verziji.
-func (repo *ConfigGroupInMemoryRepository) DeleteConfigGroup(name string, version int) error {
-	key := version
-	if _, exists := repo.configGroups[name][key];
-	//ako ne postoji baca poruku
-	!exists {
+
+func (repo *ConfigGroupConsulRepository) GetConfigurationsFromGroup(name string, version int, filterKey, filterValue string) ([]model.GroupedConfig, error) {
+    group, err := repo.GetConfigGroup(name, version)
+    if err != nil {
+        return nil, err
+    }
+
+    var filteredConfigs []model.GroupedConfig
+    for _, c := range group.Configs {
+        if val, ok := c.Labels[filterKey]; ok && val == filterValue {
+            filteredConfigs = append(filteredConfigs, c)
+        }
+    }
+    if len(filteredConfigs) == 0 {
+        return nil, fmt.Errorf("nema konfiguracija sa filterom %s:%s u grupi", filterKey, filterValue)
+    }
+    return filteredConfigs, nil
+}
+
+
+
+
+// DeleteConfigGroup deletes a configuration group by name and version.
+func (repo *ConfigGroupConsulRepository) DeleteConfigGroup(name string, version int) error {
+	key := fmt.Sprintf("configGroup/%s/%d", name, version)
+
+	kv := repo.cli.KV()
+	pair, _, err := kv.Get(key, nil)
+	if err != nil {
+		return err
+	}
+
+	if pair == nil {
 		return fmt.Errorf("konfiguraciona grupa sa imenom %s i verzijom %d nije pronađena", name, version)
 	}
-	delete(repo.configGroups[name], key)
-	return nil
+
+	_, err = kv.Delete(key, nil)
+	return err
 }
+
